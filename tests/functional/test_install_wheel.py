@@ -13,13 +13,13 @@ def test_install_from_future_wheel_version(script, data):
     """
     from tests.lib import TestFailure
 
-    package = data.packages.join("futurewheel-3.0-py2.py3-none-any.whl")
+    package = data.packages.joinpath("futurewheel-3.0-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=True)
     with pytest.raises(TestFailure):
         result.assert_installed('futurewheel', without_egg_link=True,
                                 editable=False)
 
-    package = data.packages.join("futurewheel-1.9-py2.py3-none-any.whl")
+    package = data.packages.joinpath("futurewheel-1.9-py2.py3-none-any.whl")
     result = script.pip(
         'install', package, '--no-index', expect_error=False,
         expect_stderr=True,
@@ -33,7 +33,7 @@ def test_install_from_broken_wheel(script, data):
     Test that installing a broken wheel fails properly
     """
     from tests.lib import TestFailure
-    package = data.packages.join("brokenwheel-1.0-py2.py3-none-any.whl")
+    package = data.packages.joinpath("brokenwheel-1.0-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=True)
     with pytest.raises(TestFailure):
         result.assert_installed('futurewheel', without_egg_link=True,
@@ -80,7 +80,7 @@ def test_basic_install_from_wheel_file(script, data):
     """
     Test installing directly from a wheel file.
     """
-    package = data.packages.join("simple.dist-0.1-py2.py3-none-any.whl")
+    package = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=False)
     dist_info_folder = script.site_packages / 'simple.dist-0.1.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
@@ -99,14 +99,11 @@ def test_basic_install_from_wheel_file(script, data):
                                                         result.stdout)
 
 
-# header installs are broke in pypy virtualenvs
-# https://github.com/pypa/virtualenv/issues/510
-@pytest.mark.skipif("hasattr(sys, 'pypy_version_info')")
 def test_install_from_wheel_with_headers(script, data):
     """
     Test installing from a wheel file with headers
     """
-    package = data.packages.join("headers.dist-0.1-py2.py3-none-any.whl")
+    package = data.packages.joinpath("headers.dist-0.1-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=False)
     dist_info_folder = script.site_packages / 'headers.dist-0.1.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
@@ -114,12 +111,10 @@ def test_install_from_wheel_with_headers(script, data):
                                                       result.stdout)
 
 
-@pytest.mark.network
-def test_install_wheel_with_target(script, data, common_wheels):
+def test_install_wheel_with_target(script, data, with_wheel):
     """
     Test installing a wheel using pip install --target
     """
-    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     target_dir = script.scratch_path / 'target'
     result = script.pip(
         'install', 'simple.dist==0.1', '-t', target_dir,
@@ -130,8 +125,7 @@ def test_install_wheel_with_target(script, data, common_wheels):
     )
 
 
-@pytest.mark.network
-def test_install_wheel_with_target_and_data_files(script, data, common_wheels):
+def test_install_wheel_with_target_and_data_files(script, data, with_wheel):
     """
     Test for issue #4092. It will be checked that a data_files specification in
     setup.py is handled correctly when a wheel is installed with the --target
@@ -150,9 +144,10 @@ def test_install_wheel_with_target_and_data_files(script, data, common_wheels):
             ]
         )
     """
-    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     target_dir = script.scratch_path / 'prjwithdatafile'
-    package = data.packages.join("prjwithdatafile-1.0-py2.py3-none-any.whl")
+    package = data.packages.joinpath(
+        "prjwithdatafile-1.0-py2.py3-none-any.whl"
+    )
     result = script.pip('install', package,
                         '-t', target_dir,
                         '--no-index',
@@ -196,7 +191,9 @@ def test_install_from_wheel_installs_deps(script, data):
     Test can install dependencies of wheels
     """
     # 'requires_source' depends on the 'source' project
-    package = data.packages.join("requires_source-1.0-py2.py3-none-any.whl")
+    package = data.packages.joinpath(
+        "requires_source-1.0-py2.py3-none-any.whl"
+    )
     result = script.pip(
         'install', '--no-index', '--find-links', data.find_links, package,
     )
@@ -208,7 +205,9 @@ def test_install_from_wheel_no_deps(script, data):
     Test --no-deps works with wheel installs
     """
     # 'requires_source' depends on the 'source' project
-    package = data.packages.join("requires_source-1.0-py2.py3-none-any.whl")
+    package = data.packages.joinpath(
+        "requires_source-1.0-py2.py3-none-any.whl"
+    )
     result = script.pip(
         'install', '--no-index', '--find-links', data.find_links, '--no-deps',
         package,
@@ -217,13 +216,27 @@ def test_install_from_wheel_no_deps(script, data):
     assert pkg_folder not in result.files_created
 
 
-@pytest.mark.network
-def test_install_user_wheel(script, virtualenv, data, common_wheels):
+def test_wheel_record_lines_in_deterministic_order(script, data):
+    to_install = data.packages.joinpath("simplewheel-1.0-py2.py3-none-any.whl")
+    result = script.pip('install', to_install)
+
+    dist_info_folder = script.site_packages / 'simplewheel-1.0.dist-info'
+    record_path = dist_info_folder / 'RECORD'
+
+    assert dist_info_folder in result.files_created, str(result)
+    assert record_path in result.files_created, str(result)
+
+    record_path = result.files_created[record_path].full
+    record_lines = [
+        p for p in Path(record_path).read_text().split('\n') if p
+    ]
+    assert record_lines == sorted(record_lines)
+
+
+def test_install_user_wheel(script, data, with_wheel):
     """
     Test user install from wheel (that has a script)
     """
-    virtualenv.system_site_packages = True
-    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     result = script.pip(
         'install', 'has.script==1.0', '--user', '--no-index',
         '--find-links=' + data.find_links,
@@ -395,9 +408,9 @@ def test_wheel_no_compiles_pyc(script, data):
 
 def test_install_from_wheel_uninstalls_old_version(script, data):
     # regression test for https://github.com/pypa/pip/issues/1825
-    package = data.packages.join("simplewheel-1.0-py2.py3-none-any.whl")
-    result = script.pip('install', package, '--no-index', expect_error=True)
-    package = data.packages.join("simplewheel-2.0-py2.py3-none-any.whl")
+    package = data.packages.joinpath("simplewheel-1.0-py2.py3-none-any.whl")
+    result = script.pip('install', package, '--no-index')
+    package = data.packages.joinpath("simplewheel-2.0-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=False)
     dist_info_folder = script.site_packages / 'simplewheel-2.0.dist-info'
     assert dist_info_folder in result.files_created
@@ -406,7 +419,15 @@ def test_install_from_wheel_uninstalls_old_version(script, data):
 
 
 def test_wheel_compile_syntax_error(script, data):
-    package = data.packages.join("compilewheel-1.0-py2.py3-none-any.whl")
+    package = data.packages.joinpath("compilewheel-1.0-py2.py3-none-any.whl")
     result = script.pip('install', '--compile', package, '--no-index')
     assert 'yield from' not in result.stdout
     assert 'SyntaxError: ' not in result.stdout
+
+
+def test_wheel_install_with_no_cache_dir(script, tmpdir, data):
+    """Check wheel installations work, even with no cache.
+    """
+    package = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
+    result = script.pip('install', '--no-cache-dir', '--no-index', package)
+    result.assert_installed('simpledist', editable=False)

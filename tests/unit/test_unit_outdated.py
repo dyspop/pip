@@ -3,7 +3,6 @@ import os
 import sys
 from contextlib import contextmanager
 
-
 import freezegun
 import pretend
 import pytest
@@ -11,6 +10,11 @@ from pip._vendor import lockfile, pkg_resources
 
 from pip._internal.index import InstallationCandidate
 from pip._internal.utils import outdated
+
+
+class MockBestCandidateResult(object):
+    def __init__(self, best):
+        self.best_candidate = best
 
 
 class MockPackageFinder(object):
@@ -26,11 +30,12 @@ class MockPackageFinder(object):
                               BASE_URL.format('1.0')),
     ]
 
-    def __init__(self, *args, **kwargs):
-        pass
+    @classmethod
+    def create(cls, *args, **kwargs):
+        return cls()
 
-    def find_all_candidates(self, project_name):
-        return self.INSTALLATION_CANDIDATES
+    def find_best_candidate(self, project_name):
+        return MockBestCandidateResult(self.INSTALLATION_CANDIDATES[0])
 
 
 class MockDistribution(object):
@@ -50,9 +55,8 @@ class MockDistribution(object):
 def _options():
     ''' Some default options that we pass to outdated.pip_version_check '''
     return pretend.stub(
-        find_links=False, extra_index_urls=[], index_url='default_url',
-        pre=False, trusted_hosts=False, process_dependency_links=False,
-        cache_dir='',
+        find_links=[], index_url='default_url', extra_index_urls=[],
+        no_index=False, pre=False, cache_dir='',
     )
 
 
@@ -170,3 +174,9 @@ def test_self_check_state(monkeypatch, tmpdir):
 
     # json.dumps will call this a number of times
     assert len(fake_file.write.calls)
+
+
+def test_self_check_state_no_cache_dir():
+    state = outdated.SelfCheckState(cache_dir=False)
+    assert state.state == {}
+    assert state.statefile_path is None

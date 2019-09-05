@@ -10,8 +10,20 @@ import textwrap
 import pip._internal.configuration
 from pip._internal.utils.misc import ensure_dir
 
-# This is so that tests don't need to import pip.configuration
+# This is so that tests don't need to import pip._internal.configuration.
 kinds = pip._internal.configuration.kinds
+
+
+def reset_os_environ(old_environ):
+    """
+    Reset os.environ while preserving the same underlying mapping.
+    """
+    # Preserving the same mapping is preferable to assigning a new mapping
+    # because the latter has interfered with test isolation by, for example,
+    # preventing time.tzset() from working in subsequent tests after
+    # changing os.environ['TZ'] in those tests.
+    os.environ.clear()
+    os.environ.update(old_environ)
 
 
 class ConfigurationMixin(object):
@@ -28,19 +40,19 @@ class ConfigurationMixin(object):
         for fname in self._files_to_clear:
             fname.stop()
 
-        os.environ = self._old_environ
+        reset_os_environ(self._old_environ)
 
     def patch_configuration(self, variant, di):
         old = self.configuration._load_config_files
 
         @functools.wraps(old)
-        def overidden():
+        def overridden():
             # Manual Overload
             self.configuration._config[variant].update(di)
             self.configuration._parsers[variant].append((None, None))
             return old()
 
-        self.configuration._load_config_files = overidden
+        self.configuration._load_config_files = overridden
 
     @contextlib.contextmanager
     def tmpfile(self, contents):

@@ -4,8 +4,8 @@ __pycache__/
 *$py.class
 
 # Distribution / packaging
-build/
-dist/
+/build/
+/dist/
 *.egg
 *.eggs
 *.egg-info/
@@ -26,13 +26,21 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
+tests/data/common_wheels/
 
 # Misc
 *~
 .*.sw?
+.env/
 
 # For IntelliJ IDEs (basically PyCharm)
 .idea/
 
+# For Visual Studio Code
+.vscode/
+
 # Scratch Pad for experiments
 .scratch/
+
+# Mac
+.DS_Store

@@ -5,7 +5,7 @@ import textwrap
 
 import pytest
 
-from pip._internal.status_codes import ERROR
+from pip._internal.cli.status_codes import ERROR
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 
 
@@ -57,3 +57,8 @@ class TestBasicLoading(ConfigurationMixin):
         """
 
         assert lines == textwrap.dedent(expected).strip().splitlines()
+
+    def test_forget_section(self, script):
+        result = script.pip("config", "set", "isolated", "true",
+                            expect_error=True)
+        assert "global.isolated" in result.stderr

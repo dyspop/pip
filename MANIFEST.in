@@ -6,17 +6,17 @@ include pyproject.toml
 
 include src/pip/_vendor/README.rst
 include src/pip/_vendor/vendor.txt
+recursive-include  src/pip/_vendor *LICENSE*
+recursive-include  src/pip/_vendor *COPYING*
 
 include docs/docutils.conf
 
 exclude .coveragerc
 exclude .mailmap
+exclude .appveyor.yml
 exclude .travis.yml
-exclude .landscape.yml
-exclude src/pip/_vendor/Makefile
+exclude .readthedocs.yml
 exclude tox.ini
-exclude *-requirements.txt
-exclude appveyor.yml
 
 recursive-include src/pip/_vendor *.pem
 recursive-include docs Makefile *.rst *.py *.bat
@@ -26,9 +26,9 @@ exclude src/pip/_vendor/six/moves
 recursive-exclude src/pip/_vendor *.pyi
 
 prune .github
-prune .travis
+prune .azure-pipelines
 prune docs/build
 prune news
-prune contrib
 prune tasks
 prune tests
+prune tools
